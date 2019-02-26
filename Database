@@ -1,0 +1,62 @@
+ # Akash Shah
+
+from urllib.request import urlopen
+import sys
+import sqlite3
+
+url = "http://facweb.cdm.depaul.edu/sjost/it212/rates.txt"
+response = urlopen(url)
+line = str(response.read( ))
+line = line[2:-1]
+
+conn = sqlite3.connect('lab3trans.db')
+cur = conn.cursor( )
+
+cur.execute( \
+'''create table if not exists transactions(
+       customer_name varchar(15),
+       date varchar(12),
+       target_currency varchar(3),
+       source_amount float,
+       target_exchange_rate varchar(15),
+       target_amount float);''')
+
+name = input("Enter name: ")
+date = input("Enter date: ")
+target_currency = input("Enter target currency: ")
+source_amount = float(input("Enter source amount: "))
+
+
+items = line.split(";")
+target_exchange_rate = 0.0
+for item in items:
+    fields = item.split(",")
+    code = fields[0].strip( )
+    rate = float(fields[1].strip( ))
+    if target_currency == code:
+        target_exchange_rate = rate
+        break;
+    
+if target_exchange_rate == 0.0:
+    print("Currency not on website.")
+    sys.exit( )
+
+target_amount = source_amount * target_exchange_rate
+print("Target amount: " + str(target_amount))
+
+cur.execute(f'''insert into transactions values(
+   '{name}'
+  ,'{date}'
+  ,'{target_currency}'
+  , {source_amount}
+  ,'{target_exchange_rate}'
+  , {target_amount});''')
+
+
+conn.commit( )
+
+cur.execute("select * from transactions;")
+
+print(cur.fetchall( ))
+
+conn.close( )
